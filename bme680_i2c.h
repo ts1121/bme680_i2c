@@ -118,13 +118,17 @@ void set_heater_off(i2c_inst_t *i2c);
 
 void set_heater_temperature(i2c_inst_t *i2c, uint8_t heater_set_point, uint8_t target_temp, double amb_temp);
 
-double get_calib_temp_data(i2c_inst_t *i2c, uint8_t raw_temp_msb, uint8_t raw_temp_lsb, uint8_t raw_temp_xlsb);
+//double get_calib_temp_data(i2c_inst_t *i2c, uint8_t raw_temp_msb, uint8_t raw_temp_lsb, uint8_t raw_temp_xlsb);
+double get_calib_temp_data(i2c_inst_t *i2c);
 
-double get_calib_press_data(i2c_inst_t *i2c, uint8_t raw_press_msb, uint8_t raw_press_lsb, uint8_t raw_press_xlsb);
+//double get_calib_press_data(i2c_inst_t *i2c, uint8_t raw_press_msb, uint8_t raw_press_lsb, uint8_t raw_press_xlsb);
+double get_calib_press_data(i2c_inst_t *i2c);
 
-double get_calib_hum_data(i2c_inst_t *i2c, uint8_t raw_hum_msb, uint8_t raw_hum_lsb);
+//double get_calib_hum_data(i2c_inst_t *i2c, uint8_t raw_hum_msb, uint8_t raw_hum_lsb);
+double get_calib_hum_data(i2c_inst_t *i2c);
 
-double get_calib_gas_res_data(i2c_inst_t *i2c, uint8_t raw_gas_r_msb, uint8_t raw_gas_r_lsb);
+//double get_calib_gas_res_data(i2c_inst_t *i2c, uint8_t raw_gas_r_msb, uint8_t raw_gas_r_lsb);
+double get_calib_gas_res_data(i2c_inst_t *i2c);
 
 uint8_t get_reg_val(i2c_inst_t *i2c, uint8_t reg_addr);
 

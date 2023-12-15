@@ -26,6 +26,7 @@ int main() {
    gpio_init(LED_PIN);
    gpio_set_dir(LED_PIN, GPIO_OUT);
 
+   
    uint8_t mode = 0x01;
    uint8_t press_os = 0x01;
    uint8_t temp_os = 0x01;
@@ -40,14 +41,28 @@ int main() {
    double amb_temp = 25;
    uint8_t res_heat_addr = RES_HEAT_0 + heater_set_point;
 
-
+   //Initialize I2C connection 
    bme680_init(i2c0,4,5);
+
+   //Set oversampling for T, P and H
    set_oversampling_settings(i2c0,press_os,temp_os,hum_os);
+
+   //Set IIR filter for the temperature sensor
    set_iir_filter_settings(i2c0,iir_filter);
+
+   //Enable gas conversion
    enable_gas_conversion(i2c0);
+
+   //Set index of heater set point
    set_heater_set_point(i2c0,set_point_index);
+
+   //Define heater-on time
    set_gas_wait_time(i2c0,heater_set_point,base_time,multiplier);
+
+   //Set heater temperature
    set_heater_temperature(i2c0,heater_set_point,target_temp,amb_temp);
+
+   //Set mode to forced mode
    set_mode_settings(i2c0,mode);
 
    //Register values To be used as parameters for the function test_print_reg_values() 
@@ -71,24 +86,13 @@ int main() {
         //test_print_reg_values(ctrl_meas_settings, ctrl_hum_settings, iir_filter_settings, ctrl_gas_1_val, res_heat_0_val, par_g1_val, par_g2_lsb_val, par_g2_msb_val, par_g3_val, 
         //                            res_heat_range_val, res_heat_val_val, gas_wait_x, res_heat_addr);
 
-        uint8_t raw_temp_msb = get_reg_val(i2c0,TEMP_MSB_ADDR);
-        uint8_t raw_temp_lsb = get_reg_val(i2c0,TEMP_LSB_ADDR);
-        uint8_t raw_temp_xlsb = get_reg_val(i2c0,TEMP_XLSB_ADDR);
-        double temperature = get_calib_temp_data(i2c0, raw_temp_msb, raw_temp_lsb, raw_temp_xlsb);
+        //Read calibrated TPHG data
+        double temperature = get_calib_temp_data(i2c0);
+        double pressure = get_calib_press_data(i2c0);
+        double humidity = get_calib_hum_data(i2c0);
+        double gas_resistance = get_calib_gas_res_data(i2c0);
 
-        uint8_t raw_press_msb = get_reg_val(i2c0,PRESS_MSB_ADDR);
-        uint8_t raw_press_lsb = get_reg_val(i2c0,PRESS_LSB_ADDR);
-        uint8_t raw_press_xlsb = get_reg_val(i2c0,PRESS_XLSB_ADDR);
-        double pressure = get_calib_press_data(i2c0, raw_press_msb,raw_press_lsb,raw_press_xlsb);
-
-        uint8_t raw_hum_msb = get_reg_val(i2c0,HUM_MSB_ADDR);
-        uint8_t raw_hum_lsb = get_reg_val(i2c0,HUM_LSB_ADDR);
-        double humidity = get_calib_hum_data(i2c0,raw_hum_msb,raw_hum_lsb);
-
-        uint8_t raw_gas_msb = get_reg_val(i2c0,GAS_R_MSB_ADDR);
-        uint8_t raw_gas_lsb = get_reg_val(i2c0,GAS_R_LSB_ADDR);
-        double gas_resistance = get_calib_gas_res_data(i2c0,raw_gas_msb,raw_gas_lsb);
-
+        //Print calibrated TPHG data
         printf("Temperature (*C): %f\n",(float)temperature);
         printf("Pascal (KPa): %f\n",(float)(pressure/1000));
         printf("Humidity (%%RH): %f\n",(float)humidity);

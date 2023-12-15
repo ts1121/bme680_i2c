@@ -9,11 +9,11 @@
 #include "bme680_i2c.h"
 
 // Helper function prototypes
-//static void set_mode_oversampling_settings(i2c_inst_t *i2c, uint8_t mode, uint8_t temp_os, uint8_t press_os, uint8_t hum_os);
 static void get_res_heat_x_calibr_parameters(i2c_inst_t *i2c, uint8_t par_g1, uint16_t par_g2, uint8_t par_g3, uint8_t res_heat_val, uint8_t res_heat_range);
 static void get_calib_reg_data(i2c_inst_t *i2c);
+static uint8_t get_tphg_data_reg_val(i2c_inst_t *i2c, uint8_t reg_addr);
 
-//Parameters for converting raw data
+//Parameters for calibrating raw data
 static uint8_t  dig_P10, dig_H6;
 static uint16_t dig_T1, dig_P1, dig_H1, dig_H2;
 static int16_t  dig_T2, dig_P2, dig_P4, dig_P5, dig_P8, dig_P9, dig_GH2;
@@ -234,6 +234,7 @@ void set_soft_reset(i2c_inst_t *i2c) {
     sleep_ms(10); // 10 milliseconds should be sufficient for the reset to complete
 }
 
+/*
 double get_calib_temp_data(i2c_inst_t *i2c, uint8_t raw_temp_msb, uint8_t raw_temp_lsb, uint8_t raw_temp_xlsb) {
     get_calib_reg_data(i2c);
     // Extract and combine the raw temperature values into temp_adc
@@ -247,10 +248,66 @@ double get_calib_temp_data(i2c_inst_t *i2c, uint8_t raw_temp_msb, uint8_t raw_te
 
     return temperature; // Return the temperature in degrees Celsius
 }
+*/
 
+double get_calib_temp_data(i2c_inst_t *i2c) {
+    get_calib_reg_data(i2c);
+    uint8_t raw_temp_msb = get_tphg_data_reg_val(i2c,TEMP_MSB_ADDR);
+    uint8_t raw_temp_lsb = get_tphg_data_reg_val(i2c,TEMP_LSB_ADDR);
+    uint8_t raw_temp_xlsb = get_tphg_data_reg_val(i2c,TEMP_XLSB_ADDR);
+    // Extract and combine the raw temperature values into temp_adc
+    uint32_t temp_adc = ((uint32_t)raw_temp_msb << 12) | ((uint32_t)raw_temp_lsb << 4) | ((uint32_t)raw_temp_xlsb >> 4);
+
+    // Apply the conversion formula
+    double var1 = ((((double)temp_adc / 16384.0) - (dig_T1 / 1024.0)) * dig_T2);
+    double var2 = (((((double)temp_adc / 131072.0) - (dig_T1 / 8192.0)) * (((double)temp_adc / 131072.0) - (dig_T1 / 8192.0))) * (dig_T3 * 16.0));
+    t_fine = var1 + var2;
+    double temperature = t_fine / 5120.0;
+
+    return temperature; // Return the temperature in degrees Celsius
+}
+
+/*
 double get_calib_press_data(i2c_inst_t *i2c, uint8_t raw_press_msb, uint8_t raw_press_lsb, uint8_t raw_press_xlsb) {
     
-    //get_calib_reg_data(i2c);
+    get_calib_reg_data(i2c);
+    // Extract and combine the raw temperature values into temp_adc
+    uint32_t adc_P = ((uint32_t)raw_press_msb << 12) | ((uint32_t)raw_press_lsb << 4) | ((uint32_t)raw_press_xlsb >> 4);
+    
+    int32_t var1 = 0, var2 = 0, var3 = 0, var4 = 0, P = 0;
+    var1 = (((int32_t) t_fine) >> 1) - 64000;
+    var2 = ((((var1 >> 2) * (var1 >> 2)) >> 11) * (int32_t) dig_P6) >> 2;
+    var2 = var2 + ((var1 * (int32_t)dig_P5) << 1);
+    var2 = (var2 >> 2) + ((int32_t) dig_P4 << 16);
+    var1 = (((((var1 >> 2) * (var1 >> 2)) >> 13) * ((int32_t) dig_P3 << 5)) >> 3) + (((int32_t) dig_P2 * var1) >> 1);
+    var1 = var1 >> 18;
+    var1 = ((32768 + var1) * (int32_t) dig_P1) >> 15;
+    P = 1048576 - adc_P;
+    P = (int32_t)((P - (var2 >> 12)) * ((uint32_t)3125));
+    var4 = (1 << 31);
+    
+    if(P >= var4)
+        P = (( P / (uint32_t) var1) << 1);
+    else
+        P = ((P << 1) / (uint32_t) var1);
+        
+    var1 = ((int32_t) dig_P9 * (int32_t) (((P >> 3) * (P >> 3)) >> 13)) >> 12;
+    var2 = ((int32_t)(P >> 2) * (int32_t) dig_P8) >> 13;
+    var3 = ((int32_t)(P >> 8) * (int32_t)(P >> 8) * (int32_t)(P >> 8) * (int32_t)dig_P10) >> 17;
+    P = (int32_t)(P) + ((var1 + var2 + var3 + ((int32_t)dig_P7 << 7)) >> 4);
+    
+    return (double)P;
+
+    //return (double)press_adc; // Return the temperature in degrees Celsius
+}
+*/
+
+double get_calib_press_data(i2c_inst_t *i2c) {
+    
+    get_calib_reg_data(i2c);
+    uint8_t raw_press_msb = get_tphg_data_reg_val(i2c,PRESS_MSB_ADDR);
+    uint8_t raw_press_lsb = get_tphg_data_reg_val(i2c,PRESS_LSB_ADDR);
+    uint8_t raw_press_xlsb = get_tphg_data_reg_val(i2c,PRESS_XLSB_ADDR);
     // Extract and combine the raw temperature values into temp_adc
     uint32_t adc_P = ((uint32_t)raw_press_msb << 12) | ((uint32_t)raw_press_lsb << 4) | ((uint32_t)raw_press_xlsb >> 4);
     
@@ -281,8 +338,35 @@ double get_calib_press_data(i2c_inst_t *i2c, uint8_t raw_press_msb, uint8_t raw_
     //return (double)press_adc; // Return the temperature in degrees Celsius
 }
 
+/*
 double get_calib_hum_data(i2c_inst_t *i2c, uint8_t raw_hum_msb, uint8_t raw_hum_lsb) {
-    //get_calib_reg_data(i2c);
+    get_calib_reg_data(i2c);
+    uint16_t adc_H = ((uint16_t)raw_hum_msb << 8) | raw_hum_lsb;
+    int32_t var1 = 0, var2 = 0, var3 = 0, var4 = 0, var5 = 0, var6 = 0, H = 0, T = 0;
+
+    T = (((int32_t) t_fine * 5) + 128) >> 8;
+    var1 = (int32_t) adc_H  - ((int32_t) ((int32_t)dig_H1 << 4)) - (((T * (int32_t) dig_H3) / ((int32_t)100)) >> 1);
+    var2 = ((int32_t)dig_H2 * (((T * (int32_t)dig_H4) / 
+            ((int32_t)100)) + (((T * ((T * (int32_t)dig_H5) / 
+            ((int32_t)100))) >> 6) / ((int32_t)100)) + (int32_t)(1 << 14))) >> 10;
+    var3 = var1 * var2;
+    var4 = ((((int32_t)dig_H6) << 7) + ((T * (int32_t) dig_H7) / ((int32_t)100))) >> 4;
+    var5 = ((var3 >> 14) * (var3 >> 14)) >> 10;
+    var6 = (var4 * var5) >> 1;
+
+    H = (var3 + var6) >> 12;
+
+    if (H > 102400) H = 102400; // check for over- and under-flow
+    else if(H < 0) H = 0;
+
+    return ((double)H / 1024.0);
+}
+*/
+
+double get_calib_hum_data(i2c_inst_t *i2c) {
+    get_calib_reg_data(i2c);
+    uint8_t raw_hum_msb = get_tphg_data_reg_val(i2c,HUM_MSB_ADDR);
+    uint8_t raw_hum_lsb = get_tphg_data_reg_val(i2c,HUM_LSB_ADDR);
     uint16_t adc_H = ((uint16_t)raw_hum_msb << 8) | raw_hum_lsb;
     int32_t var1 = 0, var2 = 0, var3 = 0, var4 = 0, var5 = 0, var6 = 0, H = 0, T = 0;
 
@@ -304,7 +388,32 @@ double get_calib_hum_data(i2c_inst_t *i2c, uint8_t raw_hum_msb, uint8_t raw_hum_
     return ((double)H / 1024.0);
 }
 
+/*
 double get_calib_gas_res_data(i2c_inst_t *i2c, uint8_t raw_gas_r_msb, uint8_t raw_gas_r_lsb) {
+    get_calib_reg_data(i2c);
+    uint8_t gas_range = raw_gas_r_lsb & 0x0F;
+    // Extract bits [1:0] from raw_gas_r_lsb<7:6> and shift them to [1:0] position
+    uint32_t gas_adc_lower = (raw_gas_r_lsb >> 6) & 0x03;
+
+    // Extract bits [9:2] from raw_gas_r_msb<7:0> and shift them to [9:2] position
+    uint32_t gas_adc_upper = (uint32_t)raw_gas_r_msb << 2;
+
+    // Combine the upper and lower parts to form the complete gas_adc value
+    uint32_t gas_adc = gas_adc_upper | gas_adc_lower;
+
+    double var1; 
+    double gas_switch_error = 1.0;
+    var1 =  (1340.0 + 5.0 * gas_switch_error) * const_array1[gas_range];
+    double gas_res = var1 * const_array2[gas_range] / (gas_adc - 512.0 + var1);
+    return gas_res;
+
+}
+*/
+
+double get_calib_gas_res_data(i2c_inst_t *i2c) {
+    get_calib_reg_data(i2c);
+    uint8_t raw_gas_r_msb = get_tphg_data_reg_val(i2c,GAS_R_MSB_ADDR);
+    uint8_t raw_gas_r_lsb = get_tphg_data_reg_val(i2c,GAS_R_LSB_ADDR);
     uint8_t gas_range = raw_gas_r_lsb & 0x0F;
     // Extract bits [1:0] from raw_gas_r_lsb<7:6> and shift them to [1:0] position
     uint32_t gas_adc_lower = (raw_gas_r_lsb >> 6) & 0x03;
@@ -437,6 +546,16 @@ static void get_res_heat_x_calibr_parameters(i2c_inst_t *i2c, uint8_t par_g1, ui
 
 }
 
+static uint8_t get_tphg_data_reg_val(i2c_inst_t *i2c, uint8_t reg_addr) {
+    // Read the current value of the ctrl_meas register
+    uint8_t read_value;
+    uint8_t read_command[] = {reg_addr};
+    i2c_write_blocking(i2c, BME680_ADDRESS, read_command, 1, true); // send register address
+    i2c_read_blocking(i2c, BME680_ADDRESS, &read_value, 1, false); // read current value
+
+    return read_value;
+}
+
 bool isNewDataAvailable(i2c_inst_t *i2c) {
     uint8_t status;
     uint8_t status_reg_addr[] = {MEAS_STATUS_0};
@@ -444,47 +563,5 @@ bool isNewDataAvailable(i2c_inst_t *i2c) {
     i2c_read_blocking(i2c, BME680_ADDRESS, &status, 1, false);
     return (status & 0x80) != 0; // Check if the 7th bit is set
 }
-
-
-/*
-static void set_mode_settings(i2c_inst_t *i2c, uint8_t mode, uint8_t press_os, uint8_t temp_os, uint8_t hum_os) {
-    // Define the register addresses
-    printf("I am here-3\n");
-    uint8_t ctrl_meas_address = CTRL_MEAS; // ctrl_meas register for mode, temp, and press
-    uint8_t ctrl_hum_address = CTRL_HUM;  // ctrl_hum register for humidity
-
-    printf("I am here-4\n");
-    // Construct the configuration byte for ctrl_meas
-    // mode is in bits [1:0], press_os is in bits [4:2], temp_os is in bits [7:5] 
-    uint8_t ctrl_meas_config = (temp_os << 5) | (press_os << 2) | mode;
-
-    printf("I am here-5\n");
-    // Write the configuration byte to the ctrl_meas register
-    uint8_t ctrl_meas_command[] = {ctrl_meas_address, ctrl_meas_config};
-    i2c_write_blocking(i2c, BME680_ADDRESS, ctrl_meas_command, 2, false);
-
-    //printf("I am here-6\n");
-    // Write the humidity oversampling setting to the ctrl_hum register
-    //uint8_t ctrl_hum_command[] = {ctrl_hum_address, hum_os};
-    //i2c_write_blocking(i2c, BME680_ADDRESS, ctrl_hum_command, 2, false);
-
-    printf("I am here-6\n");
-    uint8_t read_value;
-    uint8_t read_command[] = {ctrl_hum_address};
-    i2c_write_blocking(i2c, BME680_ADDRESS, read_command, 1, true); // send register address
-    i2c_read_blocking(i2c, BME680_ADDRESS, &read_value, 1, false); // read current value
-
-    printf("I am here-7\n");
-    // Modify only the lower three bits
-    read_value = (read_value & 0xF8) | (hum_os & 0x07);
-
-    uint8_t ctrl_hum_command[] = {ctrl_hum_address, read_value};
-    i2c_write_blocking(i2c, BME680_ADDRESS, ctrl_hum_command, 2, false);
-    printf("I am here-8\n");
-}
-*/
-
-
-
 
 
