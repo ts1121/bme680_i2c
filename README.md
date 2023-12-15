@@ -1,5 +1,7 @@
 # bme680_i2c
-C/C++ library for interfacing a BME680 sensor module with RP2040, leveraging the I2C protocol and pico-sdk. 
+C/C++ library for interfacing a BME680 sensor module with RP2040, leveraging the I2C protocol and pico-sdk.
+
+Prerequisite: pico-sdk.
 
 Raspberry Pi Pico board comprises two I2C channels (I2C0 and I2C1).
 The example code in the main.cpp file, uses the I2C0 channel. To compile and run the example main.cpp file as is, use the following I2C pin connections with the Raspberry Pi Pico boards:
