@@ -3,7 +3,7 @@ C/C++ library for interfacing a BME680 sensor module with RP2040, leveraging the
 
 Prerequisite: pico-sdk.
 
-To build and run the example code in the main.cpp, as is:
+To build and run the example code in the main.cpp file, as is:
 
 -The Raspberry Pi Pico board comprises two I2C channels (I2C0 and I2C1), and the example code uses the I2C0 channel. Use the following I2C pin connections with the Raspberry Pi Pico board:
 1) (BME680) SCL --> (Pico) GP5/Pin# 7
