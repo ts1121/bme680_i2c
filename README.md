@@ -1,5 +1,5 @@
 # bme680_i2c
-C/C++ library for I2C connection of BME680 with RP2040, leveraging the pico-sdk. Reads and prints TPHG data in (&deg, KPa, %RH,K&Ohms).
+C/C++ library for I2C connection of BME680 with RP2040, leveraging the pico-sdk. Reads and prints TPHG data in (Degree Celsius, Kilo Pascal, % Relative Humidilty ,Kilo Ohms).
 
 Raspberry Pi Pico board comprises two I2C channels (I2C0 and I2C1).
 The example code in the main.cpp file, uses the I2C0 channel. To compile and run the example main.cpp file as is, use the following I2C pin connections with the Raspberry Pi Pico boards:
