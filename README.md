@@ -1,7 +1,7 @@
 # bme680_i2c
 C/C++ library for interfacing a BME680 sensor module with RP2040, leveraging the I2C protocol and pico-sdk.
 
-Prerequisite: RP2040 MCU and pico-sdk.
+Prerequisite: RP2040 MCU, BME680 sensor, and pico-sdk.
 
 To build and run the example code in the main.cpp file, as is:
 
